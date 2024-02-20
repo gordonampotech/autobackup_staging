@@ -4,7 +4,7 @@
 nginx -g 'daemon off; error_log /dev/stdout debug;' &
 
 # Start the Flask app in the background
-flask run --host=0.0.0.0 &
+gunicorn -b 0.0.0.0:8099 app:app &
 
 # Execute your shell script
 ./api.sh

@@ -17,6 +17,12 @@ RUN pip install -r requirements.txt
 COPY api.sh /api.sh
 COPY start.sh /start.sh
 
+# Copy the flask app
+COPY app.py /app.py
+
+# Copy the templates directory
+COPY templates /templates
+
 # Since you mentioned nginx configuration, adjust the path according to where nginx expects it in Alpine
 # Adjust the nginx configuration path as per Alpine's nginx package structure
 COPY ingress.conf /etc/nginx/conf.d/default.conf
