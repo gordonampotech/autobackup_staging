@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup Statistics</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+  }
+  
+  .backup-stats {
+    width: 100%;
+    margin: auto;
+  }
+  
+  .stats-container {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    max-width: 600px;
+    padding: 40px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stat {
+    width: 100%;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+  }
+  
+  .stat-icon {
+    font-size: 24px;
+    margin-right: 5px; /* Adjust spacing between icon and text */
+  }
+  
+  button {
+    padding: 10px;
+    background-color: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+</style>
+</head>
+<body>
+  <div class="backup-stats">
+    <div class="stats-container">
+      <div class="stat">
+        <h1>Backup Statistics</h1>
+        <div class="stat-details">
+          <h2><span class="stat-icon">&#x1F4BE;</span>4 (10.9 MB) in the cloud</h2>        
+        </div>
+        <hr>
+        <div class="stat-details">
+            <p><span class="stat-icon">&#x23F2;</span>Last Backup 22 hours ago</p>
+            <p><span class="stat-icon">&#128341;</span>Next Backup in 2 days</p>
+        </div>
+        <button>Download latest backup</button>
+      </div>
+  </div>
+</body>
+</html>
