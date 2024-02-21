@@ -78,9 +78,9 @@
       </div>
   </div>
   <script>
-    function setNumberOfBackups(no_of_backup, total_backup_size) {
+    function setNumberOfBackups(filename, total_backup_size) {
       var backups = document.getElementById("backups");
-      backups.innerHTML += no_of_backup + " backups (" + total_backup_size + ") in the cloud";
+      backups.innerHTML += "Name: " + filename + " (" + total_backup_size + ")"
     }
 
     function setBackupTime(prev_backup_time, next_backup_time) {
@@ -126,27 +126,28 @@
       var backup_status = document.getElementById("backup_status");
       backup_status.removeAttribute("hidden");
       if (storage_res) {
-        backup_status.innerHTML = "Backup restoration successful";
+        backup_status.innerHTML = "Backup downloaded successfully";
         backup_status.style.color = "green";
       } else {
-        backup_status.innerHTML = "Backup restoration failed";
+        backup_status.innerHTML = "Backup downloaded unsuccesfully";
         backup_status.style.color = "red";
       }
     }
 
     async function downloadAndSaveFile(presignedUrl, fileName) {
-    try {
-        // Step 1: Fetch the file from the presigned URL
-        const response = await fetch(presignedUrl);
-        if (!response.ok) throw new Error('Network response was not ok.');
+        try {
+            // Step 1: Fetch the file from the presigned URL
+            const response = await fetch(presignedUrl);
+            if (!response.ok) throw new Error('Network response was not ok.');
 
-        // Step 2: Convert the response to a Blob
-        const blob = await response.blob();
+            // Step 2: Convert the response to a Blob
+            const blob = await response.blob();
 
-        const res = saveFileToStorage(blob, fileName);
-        return res;
-    } catch (error) {
-        console.error('Error downloading or saving file:', error);
+            const res = saveFileToStorage(blob, fileName);
+            return res;
+        } catch (error) {
+            console.error('Error downloading or saving file:', error);
+        }
     }
 
     async function saveFileToStorage(blob, fileName) {
@@ -158,7 +159,6 @@
         })
         return res.ok;
     }
-} 
 
     var macAddress = "{{ mac_address }}";
     
