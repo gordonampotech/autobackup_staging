@@ -12,6 +12,7 @@ while true; do
 
     # Use the variable as needed
     echo "The mac address is: $MAC_ADDR"
+    echo $MAC_ADDR > /tmp/mac_address.txt
 
     # Generate a UUID as the backup filename
     FILENAME=$(uuidgen)
@@ -30,7 +31,7 @@ while true; do
     else
         echo "Backup created successfully. Snapshot ID: ${BACKUP_ID}"
         # Define path where to save the backup file
-        BACKUP_PATH="/home/ubuntu/${BACKUP_ID}.tar"
+        BACKUP_PATH="/tmp/${BACKUP_ID}.tar"
 
         # Download the backup
         curl -s -L -o "${BACKUP_PATH}" -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" "${BACKUP_API}/${BACKUP_ID}/download"
