@@ -15,7 +15,7 @@ while true; do
     echo $MAC_ADDR > /tmp/mac_address.txt
 
     # Generate a UUID as the backup filename
-    FILENAME=$(uuidgen)
+    FILENAME="backup-restored"
     echo $FILENAME
 
     # JSON payload to create a new full backup
@@ -31,7 +31,7 @@ while true; do
     else
         echo "Backup created successfully. Snapshot ID: ${BACKUP_ID}"
         # Define path where to save the backup file
-        BACKUP_PATH="/tmp/${BACKUP_ID}.tar"
+        BACKUP_PATH="/tmp/backup-restored.tar"
 
         # Download the backup
         curl -s -L -o "${BACKUP_PATH}" -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" "${BACKUP_API}/${BACKUP_ID}/download"
@@ -39,9 +39,9 @@ while true; do
         echo "Backup downloaded successfully to ${BACKUP_PATH}"
 
         # Get file name
-        filename=${BACKUP_ID}.tar
+        filename="backup-restored.tar"
         # Get file size
-        size=$(du {BACKUP_ID}.tar |  awk '{print $1/1000}')
+        size=$(du backup-restored.tar |  awk '{print $1/1000}')
         # Get current timestamp
         sleep_start=$(date +%s)
         # Get timestamp 10 days later
