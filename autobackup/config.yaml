@@ -16,3 +16,4 @@ arch:
   - i386
 image: "ghcr.io/gordonampotech/autobackup"
 ingress: true
+host_network: true
