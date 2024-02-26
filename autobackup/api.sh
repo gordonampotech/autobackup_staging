@@ -38,6 +38,21 @@ while true; do
 
         echo "Backup downloaded successfully to ${BACKUP_PATH}"
 
+        # Get file name
+        filename=${BACKUP_ID}.tar
+        # Get file size
+        size=$(du {BACKUP_ID}.tar |  awk '{print $1/1000}')
+        # Get current timestamp
+        sleep_start=$(date +%s)
+        # Get timestamp 10 days later
+        sleep_end=$(date -d "+10 days" +%s)
+
+        # Store file info in json
+        json_file="backup_info.json"
+        echo "{\"mac_addr\": $MAC_ADDR, \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
+        echo "JSON file created at: $json_file"
+
+        RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @backup_info.json http://13.250.103.69:5000/uploadBackupDetails)
         RESPONSE=$(curl -X POST -F file=@"${BACKUP_PATH}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupFile)
         echo "s3 response: $RESPONSE"
     fi

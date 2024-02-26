@@ -78,11 +78,6 @@
       </div>
   </div>
   <script>
-    function setNumberOfBackups(filename, total_backup_size) {
-      var backups = document.getElementById("backups");
-      backups.innerHTML += "Name: " + filename + " (" + total_backup_size + ")"
-    }
-
     function setBackupTime(prev_backup_time, next_backup_time) {
       var prev_backup = document.getElementById("prev_backup");
       var next_backup = document.getElementById("next_backup");
@@ -92,17 +87,65 @@
 
     async function getBackupDetails() {
       body = JSON.stringify({mac_addr: macAddress})
-      fetch('http://13.250.103.69:5000/getBackupDetails', {
+      const res = await fetch('http://13.250.103.69:5000/getBackupDetails', {
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
         method: "POST",
         body: body,
-      }).then(res => {
-        console.log(res);
-        return res
       })
+      const res_json = await res.json();
+      
+      var filename = res_json["filename"];
+      var size = res_json["size"];
+
+      // display file details
+      displayFileDetails(filename, size);
+
+      var sleep_start = res_json["sleep_start"];
+      var sleep_end = res_json["sleep_end"];
+      
+      // get current time in epoch seconds
+      var d = new Date();
+      var seconds = d.getTime() / 1000;
+
+      // get time since last backup and time to next backup
+      var time_since_last_backup = convertTime(seconds - sleep_start);
+      var time_to_next_backup = convertTime(sleep_end - seconds);
+      displayTime(time_since_last_backup, time_to_next_backup);
+    }
+
+    function displayFileDetails(filename, size) {
+        var backups = document.getElementById("backups");
+        backups.innerHTML += "Name: " + filename + " (" + size + " MB"+ ")"
+    }
+
+    function displayTime(time_since_last_backup, time_to_next_backup) {
+        var prev_backup = document.getElementById("prev_backup");
+        var next_backup = document.getElementById("next_backup");
+        prev_backup.innerHTML += "<b>" + time_since_last_backup + " ago</b>";
+        next_backup.innerHTML += "<b>" + time_to_next_backup + "</b>";
+    }
+
+    function convertTime(seconds) {
+      const units = [
+        [1, "second"],
+        [60, "minute"],
+        [60 * 60, "hour"],
+        [60 * 60 * 24, "day"]
+      ];
+
+      let bestUnit = units[0];
+      for(const unit of units) {
+        if(seconds >= unit[0]) {
+            bestUnit = unit;
+        }
+      }
+      const [divisor, label] = bestUnit;
+      var value = Math.floor(seconds /divisor);
+      var suffix = value > 1 ? "s" : "";
+      return value + " " + label + suffix;
     }
 
     async function downloadLatestBackup(e) {
@@ -162,13 +205,7 @@
 
     var macAddress = "{{ mac_address }}";
     
-    getBackupDetails()
-      .then(result => {
-        // extract backup details from the json obj
-        setBackupTime("1 hour", "2 hours");
-        setNumberOfBackups("4", "10.9MB");
-      })
-    
+    getBackupDetails();
   </script>
 </body>
 </html>
