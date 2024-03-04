@@ -7,15 +7,16 @@ while true; do
     # Prints the time when the backup is being made
     date
 
-    # Read the first line of the file into a variable
-    MAC_ADDR=$(head -n 1 "$FILE_PATH")
+    # Get Mac Address from eth0
+    MAC_ADDR=$(ip link show eth0 | awk '/ether/ {print $2}')
+    MAC_ADDR=$(echo $MAC_ADDR | tr -d ':')
 
     # Use the variable as needed
     echo "The mac address is: $MAC_ADDR"
     echo $MAC_ADDR > /tmp/mac_address.txt
 
     # Generate a UUID as the backup filename
-    FILENAME="backup-restored"
+    FILENAME="backup_restored"
     echo $FILENAME
 
     # JSON payload to create a new full backup
@@ -31,7 +32,7 @@ while true; do
     else
         echo "Backup created successfully. Snapshot ID: ${BACKUP_ID}"
         # Define path where to save the backup file
-        BACKUP_PATH="/tmp/backup-restored.tar"
+        BACKUP_PATH="/tmp/${FILENAME}.tar"
 
         # Download the backup
         curl -s -L -o "${BACKUP_PATH}" -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" "${BACKUP_API}/${BACKUP_ID}/download"
@@ -39,20 +40,20 @@ while true; do
         echo "Backup downloaded successfully to ${BACKUP_PATH}"
 
         # Get file name
-        filename="backup-restored.tar"
+        filename=${FILENAME}.tar
         # Get file size
-        size=$(du backup-restored.tar |  awk '{print $1/1000}')
+        size=$(du /tmp/${filename} |  awk '{print $1/1000}')
         # Get current timestamp
         sleep_start=$(date +%s)
         # Get timestamp 10 days later
-        sleep_end=$(date -d "+10 days" +%s)
+        sleep_end=$(python -c "from datetime import datetime, timedelta; print(int((datetime.now() + timedelta(days=10)).timestamp()))")
 
         # Store file info in json
-        json_file="backup_info.json"
-        echo "{\"mac_addr\": $MAC_ADDR, \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
-        echo "JSON file created at: $json_file"
+        json_file="/tmp/backup_info.json"
+        echo "{\"mac_addr\": \"$MAC_ADDR\", \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
+        cat $json_file
 
-        RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @backup_info.json http://13.250.103.69:5000/uploadBackupDetails)
+        RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @"${json_file}" http://13.250.103.69:5000/uploadBackupDetails)
         RESPONSE=$(curl -X POST -F file=@"${BACKUP_PATH}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupFile)
         echo "s3 response: $RESPONSE"
     fi
