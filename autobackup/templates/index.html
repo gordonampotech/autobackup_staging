@@ -52,14 +52,40 @@
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    width: calc(50% - 10px); /* Adjust width to account for any spacing, or remove if not needed */
     box-sizing: border-box;
     margin-bottom: 15px; /* Adjust or remove if it causes layout issues */
     margin: 0 5px 15px 5px;
+    width: calc(100% - 10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .half-button {
+    width: calc(50% - 10px); /* Adjust width to account for any spacing, or remove if not needed */
   }
 
   .backup_status {
     text-align: right;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-animation {
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top: 2px solid #7be282;
+    width: 14px;
+    height: 14px;
+    animation: spin 1s linear infinite;
   }
 </style>
 </head>
@@ -77,9 +103,10 @@
             <p id="next_backup"><span class="stat-icon">&#128341;</span>Next Backup in </p>
         </div>
         <div class="buttons">
-          <button onclick="downloadLatestBackup(event)">Download backup from prev device</button>
-          <button onclick="downloadLatestBackup(event)">Download backup from current device</button>
+          <button class="half-button" onclick="downloadLatestBackup(event)">Download backup from prev device</button>
+          <button class="half-button" onclick="downloadLatestBackup(event)">Download backup from current device</button>
         </div>
+        <button id="backupButton" onclick="backupNow(event)">Backup now</button>
         <h4 class="backup_status" id="backup_status" hidden>backup failed</h4>
       </div>
   </div>
@@ -89,6 +116,39 @@
       var next_backup = document.getElementById("next_backup");
       prev_backup.innerHTML += "<b>" + prev_backup_time + " ago</b>";
       next_backup.innerHTML += "<b>" + next_backup_time + "</b>";
+    }
+
+    async function backupNow(e) {
+      // Reference to the button
+      const button = event.target;
+      const originalText = button.innerHTML;
+
+      // Change button content to loading animation
+      button.innerHTML = '<div class="loading-animation"></div>';
+      button.disabled = true;
+
+      const res = await fetch('manualBackup', {
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        method: "GET",
+      })
+
+      button.innerHTML = originalText;
+      button.disabled = false;
+
+      if (res.ok) {
+        await getBackupDetails();
+
+        var backup_status = document.getElementById("backup_status");
+        backup_status.removeAttribute("hidden");
+        backup_status.innerHTML = "Backup uploaded successfully";
+        backup_status.style.color = "green";
+      } else {
+        backup_status.innerHTML = "Backup upload failed";
+        backup_status.style.color = "red";
+      }
     }
 
     async function getBackupDetails() {
@@ -124,12 +184,15 @@
 
     function displayFileDetails(filename, size) {
         var backups = document.getElementById("backups");
-        backups.innerHTML += "Name: " + filename + " (" + size + " MB"+ ")"
+        backups.innerHTML = "";
+        backups.innerHTML += "Name: " + filename + " (" + size + " MB"+ ")";
     }
 
     function displayTime(time_since_last_backup, time_to_next_backup) {
         var prev_backup = document.getElementById("prev_backup");
         var next_backup = document.getElementById("next_backup");
+        prev_backup.innerHTML = "Last Backup ";
+        next_backup.innerHTML = "Next Backup in ";
         prev_backup.innerHTML += "<b>" + time_since_last_backup + " ago</b>";
         next_backup.innerHTML += "<b>" + time_to_next_backup + "</b>";
     }
@@ -157,6 +220,14 @@
     async function downloadLatestBackup(e) {
       e.preventDefault();
       body = JSON.stringify({mac_addr: macAddress})
+
+      const button = event.target;
+      const originalText = button.innerHTML;
+
+      // Change button content to loading animation
+      button.innerHTML = '<div class="loading-animation"></div>';
+      button.disabled = true;
+
       const res = await fetch('http://13.250.103.69:5000/downloadLatestBackup', {
         headers: {
             'Accept': 'application/json',
@@ -165,11 +236,15 @@
         method: "POST",
         body: body,
       })
+
       const res_json = await res.json();
 
       var presignedUrl = res_json['url'];
       var filename = res_json['filename'];
       const storage_res = await downloadAndSaveFile(presignedUrl, filename);
+
+      button.innerHTML = originalText;
+      button.disabled = false;
 
       // display backup status
       var backup_status = document.getElementById("backup_status");

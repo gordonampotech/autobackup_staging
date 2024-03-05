@@ -16,6 +16,7 @@ RUN pip install -r requirements.txt
 # Copy the run script, backup script, and start script
 COPY api.sh /api.sh
 COPY start.sh /start.sh
+COPY compare.sh /compare.sh
 
 # Copy the flask app
 COPY app.py /app.py
@@ -31,7 +32,7 @@ COPY ingress.conf /etc/nginx/conf.d/default.conf
 RUN mkdir -p /run/nginx
 
 # Make the run script, backup script, and start script executable
-RUN chmod a+x /api.sh /start.sh
+RUN chmod a+x /api.sh /start.sh /compare.sh
 
 # Use start.sh as the default command
 CMD ["/start.sh"]

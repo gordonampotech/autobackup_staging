@@ -39,23 +39,51 @@ while true; do
 
         echo "Backup downloaded successfully to ${BACKUP_PATH}"
 
-        # Get file name
-        filename=${FILENAME}.tar
-        # Get file size
-        size=$(du /tmp/${filename} |  awk '{print $1/1000}')
-        # Get current timestamp
-        sleep_start=$(date +%s)
-        # Get timestamp 10 days later
-        sleep_end=$(python -c "from datetime import datetime, timedelta; print(int((datetime.now() + timedelta(days=10)).timestamp()))")
+        # Fetch the old backup version json file from S3 (check version cache first)
+        HTTP_RESPONSE=$(curl -s -o response.txt -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"mac_addr": "'${MAC_ADDR}'"}' http://13.250.103.69:5000/getBackupVersion)
+        RESPONSE_BODY=$(cat response.txt)
+        echo $RESPONSE_BODY
+        DIFF=true
 
-        # Store file info in json
-        json_file="/tmp/backup_info.json"
-        echo "{\"mac_addr\": \"$MAC_ADDR\", \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
-        cat $json_file
+        # Handle when there is no backup version json in the cloud
+        if [ "$HTTP_RESPONSE" -eq 200 ]; then
+            OLD_BACKUP_VERSION_JSON_PATH="/tmp/backup_version.json"
+            echo $RESPONSE_BODY  > $OLD_BACKUP_VERSION_JSON_PATH
 
-        RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @"${json_file}" http://13.250.103.69:5000/uploadBackupDetails)
-        RESPONSE=$(curl -X POST -F file=@"${BACKUP_PATH}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupFile)
-        echo "s3 response: $RESPONSE"
+            # Compare the two json file
+            DIFF=$(./compare.sh $BACKUP_PATH $OLD_BACKUP_VERSION_JSON_PATH)
+            echo $DIFF
+        fi
+
+        # If true, upload and update the json in s3 (update version cache) , else, dont upload
+        if [ "$DIFF" = true ]; then
+            # Get file name
+            filename=${FILENAME}.tar
+            # Get file size
+            size=$(du /tmp/${filename} |  awk '{print $1/1000}')
+            # Get current timestamp
+            sleep_start=$(date +%s)
+            # Get timestamp 10 days later
+            sleep_end=$(python -c "from datetime import datetime, timedelta; print(int((datetime.now() + timedelta(days=10)).timestamp()))")
+
+            # Create and upload the version json file, then delete it locally
+            version_json_file="./backup.json"
+            tar -xf $BACKUP_PATH $version_json_file
+            RESPONSE=$(curl -X POST -F file=@"${version_json_file}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupVersion)
+            rm $version_json_file
+            
+            # Store file info in json
+            json_file="/tmp/backup_info.json"
+            echo "{\"mac_addr\": \"$MAC_ADDR\", \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
+            RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @"${json_file}" http://13.250.103.69:5000/uploadBackupDetails)
+            rm $json_file
+
+            # Upload the backup
+            RESPONSE=$(curl -X POST -F file=@"${BACKUP_PATH}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupFile)
+            echo "s3 response: $RESPONSE"
+        else
+            echo "Backup is the same, no backup is uploaded to the cloud"
+        fi
     fi
     
     sleep 864000  # Sleeps for 10 days
