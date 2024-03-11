@@ -3,25 +3,53 @@
 BACKUP_API="http://supervisor/backups"
 FILE_PATH="/backup/mac_addr.txt"
 
+# Get Mac Address from eth0
+MAC_ADDR=$(ip link show eth0 | awk '/ether/ {print $2}')
+MAC_ADDR=$(echo $MAC_ADDR | tr -d ':')
+
+# Use the variable as needed
+echo $MAC_ADDR > /tmp/mac_address.txt
+
+# Generate a UUID as the backup filename
+FILENAME="backup_restored"
+
+# JSON payload to create a new full backup
+PAYLOAD='{"name": "'"$FILENAME"'"}'
+
+# Calculate the time until the next 2 AM using Python, adjusted for Singapore's time zone
+SLEEP_TIME=$(python3 -c "
+import pytz
+from datetime import datetime, timedelta
+
+# Specify Singapore time zone
+time_zone = pytz.timezone('Asia/Singapore')
+
+# Get the current time in the specified time zone
+now = datetime.now(time_zone)
+
+# Check if current time is past 2 AM
+if now.hour > 2 or (now.hour == 2 and now.minute > 0):
+    # Calculate time until 2 AM next day
+    next_2_am = (now + timedelta(days=1)).replace(hour=2, minute=0, second=0, microsecond=0, tzinfo=None)
+else:
+    # Calculate time until 2 AM today
+    next_2_am = now.replace(hour=2, minute=0, second=0, microsecond=0, tzinfo=None)
+
+# Make next_2_am aware of the timezone
+next_2_am = time_zone.localize(next_2_am)
+
+# Calculate the difference in seconds
+delta = (next_2_am - now).total_seconds()
+
+print(int(delta))
+")
+
+echo "Waiting for $SLEEP_TIME seconds until the next 2 AM."
+
+# Sleep for the calculated duration
+sleep $SLEEP_TIME
+
 while true; do
-    # Prints the time when the backup is being made
-    date
-
-    # Get Mac Address from eth0
-    MAC_ADDR=$(ip link show eth0 | awk '/ether/ {print $2}')
-    MAC_ADDR=$(echo $MAC_ADDR | tr -d ':')
-
-    # Use the variable as needed
-    echo "The mac address is: $MAC_ADDR"
-    echo $MAC_ADDR > /tmp/mac_address.txt
-
-    # Generate a UUID as the backup filename
-    FILENAME="backup_restored"
-    echo $FILENAME
-
-    # JSON payload to create a new full backup
-    PAYLOAD='{"name": "'"$FILENAME"'"}'
-
     # Create a new backup via Supervisor API
     BACKUP_ID=$(curl -s -X POST -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" -d "${PAYLOAD}" http://supervisor/backups/new/full | jq -r '.data.slug')
 
@@ -42,7 +70,6 @@ while true; do
         # Fetch the old backup version json file from S3 (check version cache first)
         HTTP_RESPONSE=$(curl -s -o response.txt -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"mac_addr": "'${MAC_ADDR}'"}' http://13.250.103.69:5000/getBackupVersion)
         RESPONSE_BODY=$(cat response.txt)
-        echo $RESPONSE_BODY
         DIFF=true
 
         # Handle when there is no backup version json in the cloud
@@ -52,7 +79,6 @@ while true; do
 
             # Compare the two json file
             DIFF=$(./compare.sh $BACKUP_PATH $OLD_BACKUP_VERSION_JSON_PATH)
-            echo $DIFF
         fi
 
         # If true, upload and update the json in s3 (update version cache) , else, dont upload
