@@ -138,10 +138,9 @@
       button.innerHTML = originalText;
       button.disabled = false;
 
+      var backup_status = document.getElementById("backup_status");
       if (res.ok) {
-        await getBackupDetails();
-
-        var backup_status = document.getElementById("backup_status");
+        await getBackupDetails(false);
         backup_status.removeAttribute("hidden");
         backup_status.innerHTML = "Backup uploaded successfully";
         backup_status.style.color = "green";
@@ -151,35 +150,56 @@
       }
     }
 
-    async function getBackupDetails() {
-      body = JSON.stringify({mac_addr: macAddress})
-      const res = await fetch('http://13.250.103.69:5000/getBackupDetails', {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: body,
-      })
-      const res_json = await res.json();
-      
-      var filename = res_json["filename"];
-      var size = res_json["size"];
+    async function getBackupDetails(useCache) {
+      var macAddress = "{{ mac_address }}";
+      const cacheKey = `backupDetails-${macAddress}`;
+      const cachedData = localStorage.getItem(cacheKey);
+      const now = Date.now();
 
-      // display file details
-      displayFileDetails(filename, size);
+      if (useCache && cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        const ttl = 9 * 24 * 60 * 60 * 1000; // 9 days in milliseconds
 
-      var sleep_start = res_json["sleep_start"];
-      var sleep_end = res_json["sleep_end"];
-      
-      // get current time in epoch seconds
-      var d = new Date();
-      var seconds = d.getTime() / 1000;
+        // If the cache is still valid, use it
+        if (now - timestamp < ttl) {
+            console.log("Using cached data");
+            useBackupData(data);
+            return;
+        }
+      } else {
+          body = JSON.stringify({mac_addr: macAddress})
+          const res = await fetch('http://13.250.103.69:5000/getBackupDetails', {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            method: "POST",
+            body: body,
+          })
+          const res_json = await res.json();
+          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: res_json }));
+          console.log("Using fetched data");
+          useBackupData(res_json);
+      }
+    }
 
-      // get time since last backup and time to next backup
-      var time_since_last_backup = convertTime(seconds - sleep_start);
-      var time_to_next_backup = convertTime(sleep_end - seconds);
-      displayTime(time_since_last_backup, time_to_next_backup);
+    function useBackupData(data) {
+        var filename = data["filename"];
+        var size = data["size"];
+        // display file details
+        displayFileDetails(filename, size);
+
+        var sleep_start = data["sleep_start"];
+        var sleep_end = data["sleep_end"];
+
+        // get current time in epoch seconds
+        var d = new Date();
+        var seconds = d.getTime() / 1000;
+
+        // get time since last backup and time to next backup
+        var time_since_last_backup = convertTime(seconds - sleep_start);
+        var time_to_next_backup = convertTime(sleep_end - seconds);
+        displayTime(time_since_last_backup, time_to_next_backup);
     }
 
     function displayFileDetails(filename, size) {
@@ -219,6 +239,7 @@
 
     async function downloadLatestBackup(e) {
       e.preventDefault();
+      var macAddress = "{{ mac_address }}";
       body = JSON.stringify({mac_addr: macAddress})
 
       const button = event.target;
@@ -283,10 +304,8 @@
         })
         return res.ok;
     }
-
-    var macAddress = "{{ mac_address }}";
     
-    getBackupDetails();
+    getBackupDetails(true);
   </script>
 </body>
 </html>
