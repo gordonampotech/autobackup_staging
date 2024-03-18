@@ -11,12 +11,10 @@ CORS(app)
 @app.route('/')
 def home():
     mac_address = get_mac_address()
-    print("mac_addr", mac_address)
     return render_template('index.html', mac_address=mac_address)
 
 @app.route('/storeBackup', methods=['POST'])
 def storeBackup():
-    print("storing backups")
     if 'file' not in request.files:
         return jsonify({'error': 'No file part in the request'}), 400
     file = request.files['file']
@@ -25,7 +23,6 @@ def storeBackup():
     if file:
         filename = secure_filename(file.filename)
         file_path = os.path.join("/backup", filename)
-        print(file_path)
         file.save(file_path)
         return jsonify({'message': 'File successfully uploaded', 'path': file_path}), 200
     
