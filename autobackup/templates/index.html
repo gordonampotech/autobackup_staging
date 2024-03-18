@@ -178,7 +178,6 @@
           })
           const res_json = await res.json();
           localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: res_json }));
-          console.log("Using fetched data");
           useBackupData(res_json);
       }
     }
