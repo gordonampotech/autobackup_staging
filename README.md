@@ -13,6 +13,20 @@ every 10 days, ensuring that your settings, integrations and data are kept safe 
 Autobackup also provides a way for you to restore your existing and previous Home Assitant backups
 that are kept safe with us, which can be accessed using the web ui in the addon page.
 
+## To Developers
+
+To update the version of the addon
+
+Change the version in ./autobackup/config.yaml, e.g. version: "1.0.2" -> version: "1.2.0"
+
+After that, build the new docker image and push to the docker registry
+```
+docker build -t ghcr.io/gordonampotech/autobackup:<version_number> --platform linux/aarch64 .
+docker push ghcr.io/gordonampotech/autobackup:<version_number>
+```
+
+The update will show up automatically in home assistant, but will take a bit of time even after manually clicking check for update.
+
 ## Support
 
 Require support to setup the add-on or have any questions?
