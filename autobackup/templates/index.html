@@ -168,7 +168,7 @@
         }
       } else {
           body = JSON.stringify({mac_addr: macAddress})
-          const res = await fetch('http://vida.ampo.tech/getBackupDetails', {
+          const res = await fetch('https://vida.ampo.tech/getBackupDetails', {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
@@ -248,7 +248,7 @@
       button.innerHTML = '<div class="loading-animation"></div>';
       button.disabled = true;
 
-      const res = await fetch('http://vida.ampo.tech/downloadLatestBackup', {
+      const res = await fetch('https://vida.ampo.tech/downloadLatestBackup', {
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
