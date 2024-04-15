@@ -47,7 +47,7 @@ print(int(delta))
 echo "Waiting for $SLEEP_TIME seconds until the next 2 AM."
 
 # Sleep for the calculated duration
-sleep $SLEEP_TIME
+#sleep $SLEEP_TIME
 
 while true; do
     # Create a new backup via Supervisor API
@@ -83,26 +83,11 @@ while true; do
 
         # If true, upload and update the json in s3 (update version cache) , else, dont upload
         if [ "$DIFF" = true ]; then
-            # Get file name
-            filename=${FILENAME}.tar
-            # Get file size
-            size=$(du /tmp/${filename} |  awk '{print $1/1000}')
-            # Get current timestamp
-            sleep_start=$(date +%s)
-            # Get timestamp 10 days later
-            sleep_end=$(python -c "from datetime import datetime, timedelta; print(int((datetime.now() + timedelta(days=10)).timestamp()))")
-
             # Create and upload the version json file, then delete it locally
             version_json_file="./backup.json"
             tar -xf $BACKUP_PATH $version_json_file
             RESPONSE=$(curl -X POST -F file=@"${version_json_file}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupVersion)
-            rm $version_json_file
-            
-            # Store file info in json
-            json_file="/tmp/backup_info.json"
-            echo "{\"mac_addr\": \"$MAC_ADDR\", \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
-            RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @"${json_file}" http://13.250.103.69:5000/uploadBackupDetails)
-            rm $json_file
+            rm $version_json_file     
 
             # Upload the backup
             RESPONSE=$(curl -X POST -F file=@"${BACKUP_PATH}" -F "mac_addr=\"${MAC_ADDR}\"" http://13.250.103.69:5000/uploadBackupFile)
@@ -110,6 +95,21 @@ while true; do
         else
             echo "Backup is the same, no backup is uploaded to the cloud"
         fi
+
+        # Get file name
+        filename=${FILENAME}.tar
+        # Get file size
+        size=$(du /tmp/${filename} |  awk '{print $1/1000}')
+        # Get current timestamp
+        sleep_start=$(date +%s)
+        # Get timestamp 10 days later
+        sleep_end=$(python -c "from datetime import datetime, timedelta; print(int((datetime.now() + timedelta(days=10)).timestamp()))")
+
+        # Store file info in json
+        json_file="/tmp/backup_info.json"
+        echo "{\"mac_addr\": \"$MAC_ADDR\", \"filename\": \"$filename\", \"size\": $size, \"sleep_start\": $sleep_start, \"sleep_end\": $sleep_end}" > $json_file
+        RESPONSE=$(curl -X POST -H "Content-Type: application/json" -d @"${json_file}" http://13.250.103.69:5000/uploadBackupDetails)
+        rm $json_file
     fi
     
     sleep 864000  # Sleeps for 10 days
