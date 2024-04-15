@@ -47,7 +47,7 @@ print(int(delta))
 echo "Waiting for $SLEEP_TIME seconds until the next 2 AM."
 
 # Sleep for the calculated duration
-#sleep $SLEEP_TIME
+sleep $SLEEP_TIME
 
 while true; do
     # Create a new backup via Supervisor API
