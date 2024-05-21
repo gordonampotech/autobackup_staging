@@ -1,6 +1,6 @@
 name: "Autobackup"
 description: "Autobackup add-on"
-version: "1.0.4"
+version: "1.0.5"
 slug: "autobackup"
 init: false
 hassio_api: true
