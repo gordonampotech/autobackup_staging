@@ -21,7 +21,7 @@ save_mac_address() {
 # Function to check backup exists
 check_backup_exists() {
     local MAC_ADDR=$1
-    HTTP_RESPONSE=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"mac_addr": "'${MAC_ADDR}'"}' http://13.250.103.69:5000/getBackupExist)
+    HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"mac_addr": "'${MAC_ADDR}'"}' http://13.250.103.69:5000/getBackupExist)
     echo $HTTP_RESPONSE
 }
 
