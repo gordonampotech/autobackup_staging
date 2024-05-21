@@ -1,8 +1,8 @@
 #!/bin/bash
 # Define Variables
 BACKUP_API="http://supervisor/backups"                      # Supervisor backup endpoint
-BACKUP_PATH="/tmp/${FILENAME}.tar"                          # Define path where to save the backup file
 FILENAME="backup_restored"                                  # Use backup_restored as the backup filename
+BACKUP_PATH="/tmp/${FILENAME}.tar"                          # Define path where to save the backup file
 OLD_BACKUP_VERSION_JSON_PATH="/tmp/backup_version.json"     # Define path to save old backup version json file
 
 # Function to get Mac Address from eth0
@@ -23,44 +23,6 @@ check_backup_exists() {
     local MAC_ADDR=$1
     HTTP_RESPONSE=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"mac_addr": "'${MAC_ADDR}'"}' http://13.250.103.69:5000/getBackupExist)
     echo $HTTP_RESPONSE
-}
-
-# Function to calculate sleep time until 2 AM
-calculate_sleep_time() {
-    SLEEP_TIME=$(python3 -c "
-    import pytz
-    from datetime import datetime, timedelta
-
-    # Specify Singapore time zone
-    time_zone = pytz.timezone('Asia/Singapore')
-
-    # Get the current time in the specified time zone
-    now = datetime.now(time_zone)
-
-    # Check if the current time is past 2 AM
-    if now.hour > 2 or (now.hour == 2 and now.minute > 0):
-        # Calculate time until 2 AM next day
-        next_2_am = (now + timedelta(days=1)).replace(hour=2, minute=0, second=0, microsecond=0, tzinfo=None)
-    else:
-        # Calculate time until 2 AM today
-        next_2_am = now.replace(hour=2, minute=0, second=0, microsecond=0, tzinfo=None)
-
-    # Make next_2_am aware of the timezone
-    next_2_am = time_zone.localize(next_2_am)
-
-    # Calculate the difference in seconds
-    delta = (next_2_am - now).total_seconds()
-
-    print(int(delta))
-    ")
-    echo $SLEEP_TIME
-}
-
-# Function to sleep for the given amount of time
-sleep_until_next_backup() {
-    local SLEEP_TIME=$1
-    echo "Waiting for $SLEEP_TIME seconds until the next 2 AM."
-    sleep $SLEEP_TIME
 }
 
 # Function to create a backup via Supervisor API
@@ -170,9 +132,38 @@ if [ "$HTTP_RESPONSE" -ne 200 ]; then
     initiate_backup "$MAC_ADDR"     # start backup if it doesn't exist
 fi
 
-# Sleep until the following 2am (chosen to avoid peak time)
-SLEEP_TIME=$(calculate_sleep_time)
-sleep_until_next_backup "$SLEEP_TIME"
+# Calculate the time until the next 2 AM using Python, adjusted for Singapore's time zone
+SLEEP_TIME=$(python3 -c "
+import pytz
+from datetime import datetime, timedelta
+
+# Specify Singapore time zone
+time_zone = pytz.timezone('Asia/Singapore')
+
+# Get the current time in the specified time zone
+now = datetime.now(time_zone)
+
+# Check if current time is past 2 AM
+if now.hour > 2 or (now.hour == 2 and now.minute > 0):
+    # Calculate time until 2 AM next day
+    next_2_am = (now + timedelta(days=1)).replace(hour=2, minute=0, second=0, microsecond=0, tzinfo=None)
+else:
+    # Calculate time until 2 AM today
+    next_2_am = now.replace(hour=2, minute=0, second=0, microsecond=0, tzinfo=None)
+
+# Make next_2_am aware of the timezone
+next_2_am = time_zone.localize(next_2_am)
+
+# Calculate the difference in seconds
+delta = (next_2_am - now).total_seconds()
+
+print(int(delta))
+")
+
+echo "Waiting for $SLEEP_TIME seconds until the next 2 AM."
+
+# Sleep for the calculated duration
+sleep $SLEEP_TIME
 
 # Initiate backup every 10 days
 while true; do
