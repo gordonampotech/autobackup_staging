@@ -1,4 +1,4 @@
-# Home Assistant Add-on: Autobackup
+# Home Assistant Add-on: Autobackup-Staging
 
 Backup Automation and Restoration.
 
@@ -21,8 +21,8 @@ Change the version in ./autobackup/config.yaml, e.g. version: "1.0.2" -> version
 
 After that, build the new docker image and push to the docker registry
 ```
-docker build -t ghcr.io/gordonampotech/autobackup:<version_number> --platform linux/aarch64 .
-docker push ghcr.io/gordonampotech/autobackup:<version_number>
+docker build -t ghcr.io/gordonampotech/autobackup-staging:<version_number> --platform linux/aarch64 .
+docker push ghcr.io/gordonampotech/autobackup-staging:<version_number>
 ```
 
 The update will show up automatically in home assistant, but will take a bit of time even after manually clicking check for update.

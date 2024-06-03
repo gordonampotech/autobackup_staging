@@ -1,6 +1,6 @@
-name: "Autobackup"
-description: "Autobackup add-on"
-version: "1.0.5"
+name: "Autobackup-Staging"
+description: "Autobackup-Staging add-on"
+version: "1.0.0"
 slug: "autobackup"
 init: false
 hassio_api: true
@@ -14,6 +14,6 @@ arch:
   - armhf
   - armv7
   - i386
-image: "ghcr.io/gordonampotech/autobackup"
+image: "ghcr.io/gordonampotech/autobackup-staging"
 ingress: true
 host_network: true

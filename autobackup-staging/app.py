@@ -40,6 +40,7 @@ def manualBackup():
 
     # Create a new backup via Supervisor API
     response = requests.post(SUPERVISOR_API, headers=headers, json=payload)
+    print("manualBackup", response)
     backup_data = response.json()
     backup_id = backup_data.get('data', {}).get('slug')
 
