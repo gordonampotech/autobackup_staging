@@ -128,12 +128,12 @@ def manualBackup():
     }
 
     # Send backup information to the remote server
-    info_response = requests.post("http://13.250.103.69:5000/uploadBackupDetails", json=backup_info)
+    info_response = requests.post("https://vida.ampo.tech/uploadBackupDetails", json=backup_info)
     if not info_response.ok:
         return jsonify({"response": "info_response failed"}), 500
     # Send backup file to the remote server
     files = {'file': (filename, open(backup_file_path, 'rb'))}
-    file_response = requests.post("http://13.250.103.69:5000/uploadBackupFile", files=files, data={"mac_addr": backup_info["mac_addr"]})
+    file_response = requests.post("https://vida.ampo.tech/uploadBackupFile", files=files, data={"mac_addr": backup_info["mac_addr"]})
     if not file_response.ok:
         return jsonify({"response": "file_response failed"}), 500
 
