@@ -161,7 +161,6 @@
 
         // If the cache is still valid, use it
         if (now - timestamp < ttl) {
-            console.log("Using cached data");
             useBackupData(data);
             return;
         }
@@ -173,9 +172,7 @@
             },
             method: "GET",
           })
-          console.log("getbackupdetails", res);
           const res_json = await res.json();
-          console.log(res_json);
           localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: res_json }));
           useBackupData(res_json);
       }
@@ -253,7 +250,6 @@
               },
               method: "GET",
           });
-          console.log("download backup", res);
 
           const backup_status = document.getElementById("backup_status");
           backup_status.removeAttribute("hidden");
