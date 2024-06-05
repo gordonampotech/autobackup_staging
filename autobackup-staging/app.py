@@ -1,6 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, jsonify
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, timedelta
 import requests
@@ -13,18 +12,64 @@ def home():
     mac_address = get_mac_address()
     return render_template('index.html', mac_address=mac_address)
 
-@app.route('/storeBackup', methods=['POST'])
-def storeBackup():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected for uploading'}), 400
-    if file:
-        filename = secure_filename(file.filename)
+def download_backup_from_url(url, filename):
+    try:
+        # Make a request to the presigned URL
+        response = requests.get(url)
+        response.raise_for_status()  # Check if the request was successful
+
+        # Write the content to the specified path
         file_path = os.path.join("/backup", filename)
-        file.save(file_path)
-        return jsonify({'message': 'File successfully uploaded', 'path': file_path}), 200
+        with open(file_path, 'wb') as file:
+            file.write(response.content)
+
+        return {"message": "File downloaded successfully"}, 200
+    except requests.RequestException as e:
+        return {"error": str(e)}, 500
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+def fetch_presigned_url(api_endpoint):
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    body = {"mac_addr": get_mac_address()}
+    response = requests.post(api_endpoint, headers=headers, json=body)
+    data = response.json()
+    presigned_url, filename = data.get('url'), data.get('filename')
+    if not presigned_url or not filename:
+        return {"error": "url and filename not found"}, 400
+    return {"url": presigned_url, "filename": filename}, 200
+
+@app.route('/downloadBackup', methods=['GET'])
+def download_latest_backup():
+    result, status = fetch_presigned_url('https://vida.ampo.tech/downloadLatestBackup')
+    if status != 200:
+        return jsonify(result), status
+    return jsonify(*download_backup_from_url(result['url'], result['filename']))
+
+@app.route('/downloadPrevBackup', methods=['GET'])
+def download_prev_backup():
+    result, status = fetch_presigned_url('https://vida.ampo.tech/get_prev_device_backup')
+    if status != 200:
+        return jsonify(result), status
+    return jsonify(*download_backup_from_url(result['url'], result['filename']))
+
+
+@app.route('/getBackupDetails', methods=['GET'])
+def getBackupDetails():
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+    body = {"mac_addr": get_mac_address()}
+    response = requests.post('https://vida.ampo.tech/getBackupDetails', headers=headers, json=body)
+    data = response.json()
+    filename, size, sleep_start, sleep_end = data.get('filename'), data.get('size'), data.get('sleep_start'), data.get('sleep_end')
+    if not filename or not size or not sleep_start or not sleep_end:
+        return {"error": "Invalid backup details"}, 400
+    return {"filename": filename, "size": size, "sleep_start": sleep_start, "sleep_end": sleep_end}, 200
     
 @app.route('/manualBackup', methods=['GET'])
 def manualBackup():

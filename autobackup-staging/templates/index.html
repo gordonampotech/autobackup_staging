@@ -151,8 +151,7 @@
     }
 
     async function getBackupDetails(useCache) {
-      var macAddress = "{{ mac_address }}";
-      const cacheKey = `backupDetails-${macAddress}`;
+      const cacheKey = 'backupDetails';
       const cachedData = localStorage.getItem(cacheKey);
       const now = Date.now();
 
@@ -167,16 +166,16 @@
             return;
         }
       } else {
-          body = JSON.stringify({mac_addr: macAddress})
-          const res = await fetch('https://vida.ampo.tech/getBackupDetails', {
+          const res = await fetch('getBackupDetails', {
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            method: "POST",
-            body: body,
+            method: "GET",
           })
+          console.log("getbackupdetails", res);
           const res_json = await res.json();
+          console.log(res_json);
           localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: res_json }));
           useBackupData(res_json);
       }
@@ -236,10 +235,8 @@
       return value + " " + label + suffix;
     }
 
-    async function downloadLatestBackup(e) {
-      e.preventDefault();
-      var macAddress = "{{ mac_address }}";
-      body = JSON.stringify({mac_addr: macAddress})
+    async function downloadBackup(url, event) {
+      event.preventDefault();
 
       const button = event.target;
       const originalText = button.innerHTML;
@@ -248,60 +245,43 @@
       button.innerHTML = '<div class="loading-animation"></div>';
       button.disabled = true;
 
-      const res = await fetch('https://vida.ampo.tech/downloadLatestBackup', {
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: body,
-      })
+      try {
+          const res = await fetch(url, {
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+              },
+              method: "GET",
+          });
+          console.log("download backup", res);
 
-      const res_json = await res.json();
+          const backup_status = document.getElementById("backup_status");
+          backup_status.removeAttribute("hidden");
 
-      var presignedUrl = res_json['url'];
-      var filename = res_json['filename'];
-      const storage_res = await downloadAndSaveFile(presignedUrl, filename);
-
-      button.innerHTML = originalText;
-      button.disabled = false;
-
-      // display backup status
-      var backup_status = document.getElementById("backup_status");
-      backup_status.removeAttribute("hidden");
-      if (storage_res) {
-        backup_status.innerHTML = "Backup downloaded successfully";
-        backup_status.style.color = "green";
-      } else {
-        backup_status.innerHTML = "Backup downloaded unsuccesfully";
-        backup_status.style.color = "red";
+          if (res.ok) {
+              backup_status.innerHTML = "Backup downloaded successfully";
+              backup_status.style.color = "green";
+          } else {
+              backup_status.innerHTML = "Backup downloaded unsuccessfully";
+              backup_status.style.color = "red";
+          }
+      } catch (error) {
+          const backup_status = document.getElementById("backup_status");
+          backup_status.removeAttribute("hidden");
+          backup_status.innerHTML = "Error downloading backup";
+          backup_status.style.color = "red";
+      } finally {
+          button.innerHTML = originalText;
+          button.disabled = false;
       }
     }
 
-    async function downloadAndSaveFile(presignedUrl, fileName) {
-        try {
-            // Step 1: Fetch the file from the presigned URL
-            const response = await fetch(presignedUrl);
-            if (!response.ok) throw new Error('Network response was not ok.');
-
-            // Step 2: Convert the response to a Blob
-            const blob = await response.blob();
-
-            const res = saveFileToStorage(blob, fileName);
-            return res;
-        } catch (error) {
-            console.error('Error downloading or saving file:', error);
-        }
+    async function downloadLatestBackup(e) {
+      await downloadBackup('downloadBackup', e);
     }
 
-    async function saveFileToStorage(blob, fileName) {
-        const formData = new FormData();
-        formData.append('file', blob, fileName);
-        const res = await fetch('storeBackup', {
-          method: "POST",
-          body: formData,
-        })
-        return res.ok;
+    async function downloadPrevBackup(e) {
+      await downloadBackup('downloadPrevBackup', e);
     }
     
     getBackupDetails(true);
