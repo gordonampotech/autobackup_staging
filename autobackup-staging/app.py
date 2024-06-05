@@ -36,11 +36,14 @@ def fetch_presigned_url(api_endpoint):
     }
     body = {"mac_addr": get_mac_address()}
     response = requests.post(api_endpoint, headers=headers, json=body)
-    data = response.json()
-    presigned_url, filename = data.get('url'), data.get('filename')
-    if not presigned_url or not filename:
-        return {"error": "url and filename not found"}, 400
-    return {"url": presigned_url, "filename": filename}, 200
+    if response.ok:
+        data = response.json()
+        presigned_url, filename = data.get('url'), data.get('filename')
+        if not presigned_url or not filename:
+            return {"error": "url and filename not found"}, 400
+        return {"url": presigned_url, "filename": filename}, 200
+    else:
+        return {"response": "backup not found"}, response.status_code 
 
 @app.route('/downloadBackup', methods=['GET'])
 def download_latest_backup():
@@ -65,11 +68,14 @@ def getBackupDetails():
     }
     body = {"mac_addr": get_mac_address()}
     response = requests.post('https://vida.ampo.tech/getBackupDetails', headers=headers, json=body)
-    data = response.json()
-    filename, size, sleep_start, sleep_end = data.get('filename'), data.get('size'), data.get('sleep_start'), data.get('sleep_end')
-    if not filename or not size or not sleep_start or not sleep_end:
-        return {"error": "Invalid backup details"}, 400
-    return {"filename": filename, "size": size, "sleep_start": sleep_start, "sleep_end": sleep_end}, 200
+    if response.ok:
+        data = response.json()
+        filename, size, sleep_start, sleep_end = data.get('filename'), data.get('size'), data.get('sleep_start'), data.get('sleep_end')
+        if not filename or not size or not sleep_start or not sleep_end:
+            return {"error": "Invalid backup details"}, 400
+        return {"filename": filename, "size": size, "sleep_start": sleep_start, "sleep_end": sleep_end}, 200
+    else:
+        return jsonify({"response": "backup not found"}), response.status_code 
     
 @app.route('/manualBackup', methods=['GET'])
 def manualBackup():
