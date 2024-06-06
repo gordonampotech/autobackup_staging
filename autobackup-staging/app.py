@@ -18,10 +18,14 @@ def download_backup_from_url(url, filename):
         response = requests.get(url)
         response.raise_for_status()  # Check if the request was successful
 
+        print("finished getting from url")
+
         # Write the content to the specified path
         file_path = os.path.join("/backup", filename)
         with open(file_path, 'wb') as file:
             file.write(response.content)
+
+        print("finished writing")
 
         return {"message": "File downloaded successfully"}, 200
     except requests.RequestException as e:
@@ -48,6 +52,7 @@ def fetch_presigned_url(api_endpoint):
 @app.route('/downloadBackup', methods=['GET'])
 def download_latest_backup():
     result, status = fetch_presigned_url('https://vida.ampo.tech/downloadLatestBackup')
+    print("fetched latest")
     if status != 200:
         return jsonify(result), status
     return jsonify(*download_backup_from_url(result['url'], result['filename']))
@@ -55,6 +60,7 @@ def download_latest_backup():
 @app.route('/downloadPrevBackup', methods=['GET'])
 def download_prev_backup():
     result, status = fetch_presigned_url('https://vida.ampo.tech/get_prev_device_backup')
+    print("fetched prev")
     if status != 200:
         return jsonify(result), status
     return jsonify(*download_backup_from_url(result['url'], result['filename']))
