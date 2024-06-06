@@ -18,14 +18,10 @@ def download_backup_from_url(url, filename):
         response = requests.get(url)
         response.raise_for_status()  # Check if the request was successful
 
-        print("finished getting from url")
-
         # Write the content to the specified path
         file_path = os.path.join("/backup", filename)
         with open(file_path, 'wb') as file:
             file.write(response.content)
-
-        print("finished writing")
 
         return {"message": "File downloaded successfully"}, 200
     except requests.RequestException as e:
@@ -52,7 +48,6 @@ def fetch_presigned_url(api_endpoint):
 @app.route('/downloadBackup', methods=['GET'])
 def download_latest_backup():
     result, status = fetch_presigned_url('https://vida.ampo.tech/downloadLatestBackup')
-    print("fetched latest")
     if status != 200:
         return jsonify(result), status
     return jsonify(*download_backup_from_url(result['url'], result['filename']))
@@ -60,7 +55,6 @@ def download_latest_backup():
 @app.route('/downloadPrevBackup', methods=['GET'])
 def download_prev_backup():
     result, status = fetch_presigned_url('https://vida.ampo.tech/get_prev_device_backup')
-    print("fetched prev")
     if status != 200:
         return jsonify(result), status
     return jsonify(*download_backup_from_url(result['url'], result['filename']))
@@ -117,6 +111,7 @@ def manualBackup():
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
 
+    print("finished downloading")
     # Get file size in MB
     size = os.path.getsize(backup_file_path) / (1024 * 1024)
     # Timestamps
@@ -135,11 +130,13 @@ def manualBackup():
 
     # Send backup information to the remote server
     info_response = requests.post("https://vida.ampo.tech/uploadBackupDetails", json=backup_info)
+    print(info_response)
     if not info_response.ok:
         return jsonify({"response": "info_response failed"}), 500
     # Send backup file to the remote server
     files = {'file': (filename, open(backup_file_path, 'rb'))}
     file_response = requests.post("https://vida.ampo.tech/uploadBackupFile", files=files, data={"mac_addr": backup_info["mac_addr"]})
+    print(file_response)
     if not file_response.ok:
         return jsonify({"response": "file_response failed"}), 500
 
